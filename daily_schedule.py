@@ -23,7 +23,7 @@ def run_script():
 run_script()
 
 # 排程時間設定
-schedule.every().day.at("11:34").do(run_script)
+schedule.every().day.at("09:00").do(run_script)
 
 while True:
     schedule.run_pending()
