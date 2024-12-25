@@ -19,25 +19,27 @@ other_drop_threshold = 5  # 其他標的下跌幅度
 
 # 變數設定
 send_images = True  # 是否傳送圖片
+auto_login = True  # 是否使用自動登入來獲取標的
 image_save_path = "./images"  # 圖片儲存路徑
 
 # 獲取標的名稱的方法
 try:
-    # 自動登入獲取標的
-    filtered_lines = get_filtered_lines()
-    print("獲取標的：", filtered_lines)
-    symbols = [symbol + "USDT" for symbol in filtered_lines]
-
-    # 手動輸入標的名稱
-    # symbols_input = input("請輸入標的名稱（以逗號分隔，例如：BTC,ETH）: ")
-    # symbols = [symbol.strip() + "USDT" for symbol in symbols_input.split(",")]
-    # print("標的名稱：", symbols)
-
-    # 加入 BTC 和 ETH
-    symbols = list(set(symbols + ["BTCUSDT", "ETHUSDT"]))
+    if auto_login:
+        # 自動登入獲取標的
+        filtered_lines = get_filtered_lines()
+        filtered_lines = list(set(filtered_lines + ["BTC", "ETH"]))
+        symbols = [symbol + "USDT" for symbol in filtered_lines]
+    else:
+        # 手動輸入標的名稱
+        symbols_input = input("請輸入標的名稱（以逗號分隔，例如：BTC,ETH）: ")
+        symbols_input += ",BTC,ETH"  # 直接添加 BTC 和 ETH
+        symbols_input_list = symbols_input.split(",")  # 將字串轉為列表
+        symbols_input_list = list(set(symbols_input_list))  # 去重
+        symbols = [symbol.strip() + "USDT" for symbol in symbols_input_list]  # 每個標的加上 USDT
 
     # 將標的存入 txt
-    with open(f"{datetime.date.today()}.txt", "w") as f:
+    file_name = f"{datetime.date.today()}.txt"
+    with open(file_name, "w") as f:
         for symbol in symbols:
             f.write(f"BINANCE:{symbol}.P,")
 
@@ -98,16 +100,26 @@ def check_volume(symbol):
 
 # 主程式
 if __name__ == "__main__":
-    send_line_notify(f"{datetime.date.today()} 強勢標的：\n{symbols}", line_notify_token)
-    while True:
-        for symbol in symbols:
-            if check_volume(symbol): 
-                kline_data = get_kline_data(symbol)  # 獲取完整 K 線數據
-                if kline_data is not None and send_images:  # 如果啟用傳送圖片功能
-                    image_file_path = os.path.join(image_save_path, f"{symbol}_kline.png")
-                    plot_kline(kline_data, symbol, image_file_path)  # 繪製圖表
+    try:
+        if auto_login:
+            send_line_notify(f"{datetime.date.today()} 強勢標的：\n{filtered_lines}", line_notify_token)
+        else:
+            symbols_input_list = list(set(symbols_input_list)) 
+            send_line_notify(f"{datetime.date.today()} 強勢標的：\n{symbols_input_list}", line_notify_token)
 
-                    # 發送文字與圖片通知
-                    send_line_notify(f"{symbol} 的 K 線圖如下：", line_notify_token, image_file_path)
-
-        time.sleep(300)
+        # 檢查成交量和下跌幅度
+        while True:
+            try:
+                for symbol in symbols:
+                    if check_volume(symbol):
+                        kline_data = get_kline_data(symbol)  # 獲取完整 K 線數據
+                        if kline_data is not None and send_images:
+                            image_file_path = os.path.join(image_save_path, f"{symbol}_kline.png")
+                            plot_kline(kline_data, symbol, image_file_path)  # 繪製圖表
+                            send_line_notify(f"{symbol} 的 K 線圖如下：", line_notify_token, image_file_path)
+                time.sleep(300)  # 等待 5 分鐘
+            except Exception as e:
+                print(f"迴圈內發生錯誤: {e}")
+                time.sleep(10)  # 等待 10 秒後繼續
+    except Exception as e:
+        print(f"主程式運行時出現錯誤: {e}")
