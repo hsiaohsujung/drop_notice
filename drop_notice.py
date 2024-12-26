@@ -13,7 +13,7 @@ line_notify_url = 'https://notify-api.line.me/api/notify'
 
 # 參數設定
 volume_threshold_high = 5  # 最高成交量
-volume_threshold_low = 2   # 最低成交量
+volume_threshold_low = 2  # 最低成交量
 big_threshold = 2  # BTC 和 ETH 下跌幅度
 other_drop_threshold = 5  # 其他標的下跌幅度
 
@@ -33,15 +33,24 @@ try:
         # 手動輸入標的名稱
         symbols_input = input("請輸入標的名稱（以逗號分隔，例如：BTC,ETH）: ")
         symbols_input += ",BTC,ETH"  # 直接添加 BTC 和 ETH
+        symbols_input = symbols_input.replace(" ", "")  # 去除空格
         symbols_input_list = symbols_input.split(",")  # 將字串轉為列表
         symbols_input_list = list(set(symbols_input_list))  # 去重
         symbols = [symbol.strip() + "USDT" for symbol in symbols_input_list]  # 每個標的加上 USDT
 
+    strong_symbols = [symbol for symbol in symbols if symbol not in ["BTCUSDT", "ETHUSDT"]]
+
     # 將標的存入 txt
     file_name = f"{datetime.date.today()}.txt"
-    with open(file_name, "w") as f:
-        for symbol in symbols:
+    with open(file_name, "w", encoding="utf-8") as f:
+        # 寫入大盤標的
+        f.write("###大盤,BINANCE:BTCUSDT.P,BINANCE:ETHUSDT.P\n")
+        # 寫入強勢標的
+        f.write("###強勢,")
+        for symbol in strong_symbols:
             f.write(f"BINANCE:{symbol}.P,")
+except Exception as e:
+    print(f"發生錯誤: {e}")
 
 except Exception as e:
     print(f"獲取標的時出現錯誤: {e}")
@@ -69,7 +78,7 @@ def send_line_notify(message, token, image_path=None):
         print(f"發送通知時出現錯誤: {e}")
 
 # 比較成交量與下跌幅度的函數
-def check_volume(symbol):
+def check_volume(symbol, Notifiction):
     url = f'https://fapi.binance.com/fapi/v1/klines?symbol={symbol}&interval=15m&limit=2'
     try:
         response = requests.get(url)
@@ -84,13 +93,15 @@ def check_volume(symbol):
         drop_percentage = max(0, (current_open - current_close) / current_open * 100)
 
         if current_volume > previous_volume * volume_threshold_high:
-            send_line_notify(f"{symbol} 成交量: {current_volume / previous_volume:.2f} 倍", line_notify_token)
+            message = f"{symbol} 成交量 {current_volume / previous_volume:.2f} 倍"
+            Notifiction.append(message)
             return True
 
         if volume_threshold_low < current_volume / previous_volume <= volume_threshold_high:
             drop_threshold = big_threshold if symbol in ["BTCUSDT", "ETHUSDT"] else other_drop_threshold
             if drop_percentage >= drop_threshold:
-                send_line_notify(f"{symbol} 下跌: -{drop_percentage:.2f}% (成交量: {current_volume / previous_volume:.2f} 倍)", line_notify_token)
+                message = f"{symbol} (-{drop_percentage:.2f}%) 成交量 {current_volume / previous_volume:.2f} 倍"
+                Notifiction.append(message)
                 return True
 
         return False
@@ -101,22 +112,37 @@ def check_volume(symbol):
 # 主程式
 if __name__ == "__main__":
     try:
+        Notifiction = []
         if auto_login:
-            send_line_notify(f"{datetime.date.today()} 強勢標的：\n{filtered_lines}", line_notify_token)
+            formatted_filtered_lines = sorted(set(filtered_lines))
+            formatted_text = ", ".join(formatted_filtered_lines)
+            send_line_notify(f"{datetime.date.today()} 強勢標的：\n{formatted_text}", line_notify_token)
         else:
-            symbols_input_list = list(set(symbols_input_list)) 
-            send_line_notify(f"{datetime.date.today()} 強勢標的：\n{symbols_input_list}", line_notify_token)
+            symbols_input_list = sorted(set(symbols_input_list))
+            formatted_symbols = ", ".join(symbols_input_list)
+            send_line_notify(f"{datetime.date.today()} 強勢標的：\n{formatted_symbols}", line_notify_token)
 
         # 檢查成交量和下跌幅度
         while True:
             try:
                 for symbol in symbols:
-                    if check_volume(symbol):
-                        kline_data = get_kline_data(symbol)  # 獲取完整 K 線數據
+                    if check_volume(symbol, Notifiction):
+                        pass
+
+                if Notifiction:
+                    notification_message = f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n" + "\n".join(Notifiction)
+                    send_line_notify(notification_message, line_notify_token)
+                    
+                    for symbol_message in Notifiction:
+                        symbol = symbol_message.split()[0]
+                        kline_data = get_kline_data(symbol)
                         if kline_data is not None and send_images:
                             image_file_path = os.path.join(image_save_path, f"{symbol}_kline.png")
                             plot_kline(kline_data, symbol, image_file_path)  # 繪製圖表
-                            send_line_notify(f"{symbol} 的 K 線圖如下：", line_notify_token, image_file_path)
+                            send_line_notify(f"{symbol} 的 K 線圖：", line_notify_token, image_file_path)
+
+                    Notifiction.clear()  # 清空列表，避免重複通知
+
                 time.sleep(300)  # 等待 5 分鐘
             except Exception as e:
                 print(f"迴圈內發生錯誤: {e}")

@@ -1,4 +1,5 @@
 import requests
+import re
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
@@ -55,7 +56,8 @@ def plot_kline(df, symbol, image_path):
     ax1.plot(df.index, df['MA60'], color='#2B5877', linewidth=1.6)
 
     # 格式化 K 線圖
-    ax1.set_title(f"{symbol} 15-Min", fontsize=16)
+    symbol = re.sub(r'USDT$', '', symbol) 
+    ax1.set_title(symbol, fontsize=24)
     ax1.set_ylabel("Price", fontsize=12)
     ax1.tick_params(axis='x', which='both', bottom=False, top=False, labelbottom=False)
     ax1.spines['top'].set_visible(False)  # 移除上框線
