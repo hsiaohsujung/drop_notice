@@ -2,6 +2,7 @@ import os
 import requests
 import time
 import datetime
+import pandas as pd
 from get_symbols import get_filtered_lines  # 匯入標的名稱
 from draw import get_kline_data, plot_kline
 
@@ -21,6 +22,7 @@ other_drop_threshold = 5  # 其他標的下跌幅度
 send_images = True  # 是否傳送圖片
 auto_login = True  # 是否使用自動登入來獲取標的
 image_save_path = "./images"  # 圖片儲存路徑
+file_path = "data.xlsx"  # Excel 文件路徑
 
 # 獲取標的名稱的方法
 try:
@@ -77,8 +79,38 @@ def send_line_notify(message, token, image_path=None):
     except Exception as e:
         print(f"發送通知時出現錯誤: {e}")
 
+def save_to_excel(data, file_path, sheet_name):
+    try:
+        # 將 data 存入DataFrame(new_df)
+        new_df = pd.DataFrame(data, columns=["Symbol", "Time", "Change(%)", "Volume", "Price"])
+
+        if os.path.exists(file_path):
+            # 文件存在，處理目標工作表
+            with pd.ExcelWriter(file_path, engine="openpyxl", mode="a", if_sheet_exists="overlay") as writer:
+                # 獲取所有工作表名稱
+                workbook = writer.book
+                sheet_names = workbook.sheetnames
+
+                if sheet_name not in sheet_names:
+                    # 如果目標工作表不存在，創建新的並將new_df數據保存
+                    new_df.to_excel(writer, sheet_name=sheet_name, index=False)
+                else:
+                    # 如果工作表存在，加上新數據
+                    existing_data = pd.read_excel(file_path, sheet_name=sheet_name)
+                    combined_data = pd.concat([existing_data, new_df], ignore_index=True)
+                    combined_data.to_excel(writer, sheet_name=sheet_name, index=False)
+        else:
+            # 文件不存在，直接創建文件和工作表
+            with pd.ExcelWriter(file_path, engine="openpyxl") as writer:
+                new_df.to_excel(writer, sheet_name=sheet_name, index=False)
+
+        print(f"成功保存到 Excel")
+
+    except Exception as e:
+        print(f"保存到 Excel 時發生錯誤: {e}")
+
 # 比較成交量與下跌幅度的函數
-def check_volume(symbol, Notifiction):
+def check_volume(symbol, Notifiction, data):
     url = f'https://fapi.binance.com/fapi/v1/klines?symbol={symbol}&interval=15m&limit=2'
     try:
         response = requests.get(url)
@@ -86,22 +118,27 @@ def check_volume(symbol, Notifiction):
         if len(klines) < 2:
             return False
 
+        current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         current_volume = float(klines[1][5])
         previous_volume = float(klines[0][5])
         current_open = float(klines[1][1])
         current_close = float(klines[1][4])
         drop_percentage = max(0, (current_open - current_close) / current_open * 100)
+        rise_percentage = max(0, (current_close - current_open) / current_open * 100)
 
         if current_volume > previous_volume * volume_threshold_high:
-            message = f"{symbol} 成交量 {current_volume / previous_volume:.2f} 倍"
+            price_change = f"+ {rise_percentage:.2f}%" if current_close > current_open else f"- {drop_percentage:.2f}%"
+            message = f"{symbol} 成交量 {current_volume / previous_volume:.2f} 倍, {price_change}, 價格 {current_close:.2f}"
             Notifiction.append(message)
+            data.append([symbol, current_time, price_change, f"{current_volume / previous_volume:.2f}", f"{current_close:.2f}"])
             return True
 
         if volume_threshold_low < current_volume / previous_volume <= volume_threshold_high:
             drop_threshold = big_threshold if symbol in ["BTCUSDT", "ETHUSDT"] else other_drop_threshold
             if drop_percentage >= drop_threshold:
-                message = f"{symbol} (-{drop_percentage:.2f}%) 成交量 {current_volume / previous_volume:.2f} 倍"
+                message = f"{symbol} (-{drop_percentage:.2f}%) 成交量 {current_volume / previous_volume:.2f} 倍, 價格 {current_close:.2f}"
                 Notifiction.append(message)
+                data.append([symbol, current_time, f"-{drop_percentage:.2f}%", f"{current_volume / previous_volume:.2f}", f"{current_close:.2f}"])
                 return True
 
         return False
@@ -113,6 +150,8 @@ def check_volume(symbol, Notifiction):
 if __name__ == "__main__":
     try:
         Notifiction = []
+        data = []
+
         if auto_login:
             formatted_filtered_lines = sorted(set(filtered_lines))
             formatted_text = ", ".join(formatted_filtered_lines)
@@ -126,12 +165,13 @@ if __name__ == "__main__":
         while True:
             try:
                 for symbol in symbols:
-                    if check_volume(symbol, Notifiction):
+                    if check_volume(symbol, Notifiction, data):
                         pass
 
                 if Notifiction:
                     notification_message = f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n" + "\n".join(Notifiction)
                     send_line_notify(notification_message, line_notify_token)
+                    save_to_excel(data, file_path, sheet_name="data")
                     
                     for symbol_message in Notifiction:
                         symbol = symbol_message.split()[0]
