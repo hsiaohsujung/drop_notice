@@ -9,18 +9,18 @@ from draw import get_kline_data, plot_kline
 # LINE Notify 設定
 # 測試:ObJ7Be8NkZb8FPNaubCxELL8CXOkmVCRXuDpsv1BO37
 # 正式:2MMntGqT1ztd6IMYok3VRaT0At65YeLQNrT34mcGpMy
-line_notify_token = '2MMntGqT1ztd6IMYok3VRaT0At65YeLQNrT34mcGpMy'
+line_notify_token = 'ObJ7Be8NkZb8FPNaubCxELL8CXOkmVCRXuDpsv1BO37'
 line_notify_url = 'https://notify-api.line.me/api/notify'
 
 # 參數設定
-volume_threshold_high = 5  # 最高成交量
-volume_threshold_low = 2  # 最低成交量
-big_threshold = 2  # BTC 和 ETH 下跌幅度
-other_drop_threshold = 5  # 其他標的下跌幅度
+volume_threshold_high = 0.1  # 最高成交量
+volume_threshold_low = 0.1  # 最低成交量
+big_threshold = 0.1  # BTC 和 ETH 下跌幅度
+other_drop_threshold = 0.1  # 其他標的下跌幅度
 
 # 變數設定
 send_images = True  # 是否傳送圖片
-auto_login = True  # 是否使用自動登入來獲取標的
+auto_login = False  # 是否使用自動登入來獲取標的
 image_save_path = "./images"  # 圖片儲存路徑
 file_path = "data.xlsx"  # Excel 文件路徑
 
@@ -127,18 +127,18 @@ def check_volume(symbol, Notifiction, data):
         rise_percentage = max(0, (current_close - current_open) / current_open * 100)
 
         if current_volume > previous_volume * volume_threshold_high:
-            price_change = f"+ {rise_percentage:.2f}%" if current_close > current_open else f"- {drop_percentage:.2f}%"
-            message = f"{symbol} 成交量 {current_volume / previous_volume:.2f} 倍, {price_change}, 價格 {current_close:.2f}"
+            price_change = f"+{rise_percentage:.2f}%" if current_close > current_open else f"-{drop_percentage:.2f}%"
+            message = f"{symbol[:-4]} : {price_change}, {current_volume / previous_volume:.2f} 倍, {current_close:.2f}"
             Notifiction.append(message)
-            data.append([symbol, current_time, price_change, f"{current_volume / previous_volume:.2f}", f"{current_close:.2f}"])
+            data.append([symbol[:-4], current_time, price_change, f"{current_volume / previous_volume:.2f}", f"{current_close:.2f}"])
             return True
 
         if volume_threshold_low < current_volume / previous_volume <= volume_threshold_high:
             drop_threshold = big_threshold if symbol in ["BTCUSDT", "ETHUSDT"] else other_drop_threshold
             if drop_percentage >= drop_threshold:
-                message = f"{symbol} (-{drop_percentage:.2f}%) 成交量 {current_volume / previous_volume:.2f} 倍, 價格 {current_close:.2f}"
+                message = f"{symbol[:-4]} : (-{drop_percentage:.2f}%), {current_volume / previous_volume:.2f} 倍, {current_close:.2f}"
                 Notifiction.append(message)
-                data.append([symbol, current_time, f"-{drop_percentage:.2f}%", f"{current_volume / previous_volume:.2f}", f"{current_close:.2f}"])
+                data.append([symbol[:-4], current_time, f"-{drop_percentage:.2f}%", f"{current_volume / previous_volume:.2f}", f"{current_close:.2f}"])
                 return True
 
         return False
@@ -169,12 +169,13 @@ if __name__ == "__main__":
                         pass
 
                 if Notifiction:
-                    notification_message = f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n" + "\n".join(Notifiction)
+                    notification_message = f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n" + "【名稱：成交量, 漲跌幅, 價格】\n" + "\n" + "\n".join(Notifiction)
                     send_line_notify(notification_message, line_notify_token)
                     save_to_excel(data, file_path, sheet_name="data")
                     
                     for symbol_message in Notifiction:
                         symbol = symbol_message.split()[0]
+                        symbol += "USDT"
                         kline_data = get_kline_data(symbol)
                         if kline_data is not None and send_images:
                             image_file_path = os.path.join(image_save_path, f"{symbol}_kline.png")
