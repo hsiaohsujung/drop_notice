@@ -44,11 +44,10 @@ def get_filtered_lines():
             line = line.strip()
             if "強勢族群：" in line or "次強勢族群：" in line:
                 record_section = True
-                filtered_lines.append(line.split("：")[1].strip().replace(" ", ""))  # 去除空格
+                filtered_lines.extend(line.split("：")[1].strip().replace(" ", "").split(","))  # 拆分逗號並去除空格
                 continue
             if record_section and line.startswith(","):
-                filtered_lines.append(line.lstrip(",").strip().replace(" ", ""))  # 去除空格
-
+                filtered_lines.extend(line.lstrip(",").strip().replace(" ", "").split(","))  # 拆分逗號並去除空格
         return sorted(set(filtered_lines))  # 去除重複標的
 
     except Exception as e:
