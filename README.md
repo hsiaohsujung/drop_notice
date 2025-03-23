@@ -52,6 +52,6 @@ chrome --profile-directory="Default"
 ```
 
 通知範例圖如下：
-![image](https://github.com/hsiaohsujung/drop_notice/blob/master/alert_info.png)
 
+![image](https://github.com/hsiaohsujung/drop_notice/blob/master/alert_info.png)
 ![image](https://github.com/hsiaohsujung/drop_notice/blob/master/k_line.jpg)
