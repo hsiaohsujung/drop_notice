@@ -32,15 +32,14 @@
 
 ## ⚙️ 安裝與執行
 
-▶️ 執行主程式 
-```bash
+▶️ 執行主程式
 ```python daily_schedule.py ```
 
 🧩 設定條件與開關功能
-編輯 drop_notice.py 檔案，設定以下內容：
-📊 參數門檻：設定價格/漲跌幅/交易量等條件
-🔄 是否啟用爬蟲：True/False，是否自動抓取強勢標的
-🖼️ 是否傳送圖片：True/False
+編輯 drop_notice.py 檔案，設定以下內容：  
+📊 參數門檻：設定價格/漲跌幅/交易量等條件  
+🔄 是否啟用爬蟲：True/False，是否自動抓取強勢標的  
+🖼️ 是否傳送圖片：True/False  
 
 💬 LINE 通知整合
 使用 LINE Notify 串接：
