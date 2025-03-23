@@ -4,11 +4,11 @@ from datetime import datetime, timedelta
 import time
 
 # 目標網址
-DISCORD_CHANNEL_URL = "https://discord.com/channels/1053982055677046824/1100977750954754108?noapp=1"
+DISCORD_CHANNEL_URL = ""
 
 # 自定義 Chrome 設定檔路徑
-CHROME_USER_DATA_DIR = "C:/Users/Sasha/AppData/Local/Google/Chrome/User Data"
-PROFILE_NAME = "Default"  # 例如: "Default", "Profile 1", "Profile 2"
+CHROME_USER_DATA_DIR = ""
+PROFILE_NAME = ""  # 例如: "Default", "Profile 1", "Profile 2"
 
 def get_filtered_lines():
     chrome_options = webdriver.ChromeOptions()
