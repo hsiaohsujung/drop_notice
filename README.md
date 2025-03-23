@@ -35,16 +35,16 @@
 ▶️ 執行主程式
 ```python daily_schedule.py ```
 
-🧩 設定條件與開關功能
-編輯 drop_notice.py 檔案，設定以下內容：  
+🧩 參數設定  
+編輯 drop_notice.py 檔案，設定以下內容：    
 📊 參數門檻：設定價格/漲跌幅/交易量等條件  
 🔄 是否啟用爬蟲：True/False，是否自動抓取強勢標的  
 🖼️ 是否傳送圖片：True/False  
 
 💬 LINE 通知整合
-使用 LINE Notify 串接：
-取得你的 LINE 權杖（access token）
-程式會自動發送符合條件的幣種資訊與 K 線圖至 LINE
+使用 LINE Notify 串接：  
+取得你的 LINE 權杖（access token）  
+程式會自動發送符合條件的幣種資訊與 K 線圖至 LINE  
 
 # 終端機查詢chrome使用者
 ```bash
