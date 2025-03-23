@@ -32,9 +32,8 @@
 
 ## ⚙️ 安裝與執行
 
-▶️ 執行主程式
-```bash
-python daily_schedule.py
+<pre> ```bash ▶️ 執行主程式 
+python daily_schedule.py ``` </pre>
 
 🧩 設定條件與開關功能
 編輯 drop_notice.py 檔案，設定以下內容：
