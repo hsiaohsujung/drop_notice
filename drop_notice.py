@@ -7,10 +7,8 @@ from get_symbols import get_filtered_lines  # 匯入標的名稱
 from draw import get_kline_data, plot_kline
 
 # LINE Notify 設定
-# 測試:ObJ7Be8NkZb8FPNaubCxELL8CXOkmVCRXuDpsv1BO37
-# 正式:2MMntGqT1ztd6IMYok3VRaT0At65YeLQNrT34mcGpMy
-line_notify_token = '2MMntGqT1ztd6IMYok3VRaT0At65YeLQNrT34mcGpMy'
-line_notify_url = 'https://notify-api.line.me/api/notify'
+line_notify_token = ''
+line_notify_url = ''
 
 # 參數設定
 volume_threshold_high = 5  # 最高成交量
